@@ -1,32 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Inventory Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f5f5f7; }
+    .chat-bubble { max-width: 80%; border-radius: 12px; padding: 12px 16px; }
+    .user-bubble { background-color: #007aff; color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+    .bot-bubble { background-color: #e5e5ea; color: #1c1c1e; border-bottom-left-radius: 4px; }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-  <div class="max-w-3xl mx-auto py-8 px-4">
-    <h1 class="text-2xl font-bold mb-6">Inventory Manager</h1>
-
-    <div class="bg-white rounded-lg shadow p-4 mb-4">
-      <input id="userInput" type="text" placeholder="Type a command like 'Add 5 iPhones'" class="w-full border p-2 rounded" />
-      <button id="sendBtn" class="mt-2 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-        Send Command
-      </button>
+<body class="flex flex-col h-screen">
+  <!-- Chat Area -->
+  <div class="flex-1 p-6 overflow-y-auto">
+    <div class="max-w-3xl mx-auto space-y-4" id="chatContainer">
+      <div class="flex justify-start">
+        <div class="chat-bubble bot-bubble">
+          <p>Hello! I'm your Inventory Assistant.</p>
+          <p class="mt-2">Try commands like:</p>
+          <ul class="list-disc pl-5 mt-1">
+            <li>Add 10 iPhones</li>
+            <li>Remove 5 MacBooks</li>
+          </ul>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="space-y-4" id="chatOutput">
-      <div class="bg-gray-200 p-4 rounded">🤖 Hello! I'm your Inventory Assistant.<br>You can say things like:<br>• "Add 10 iPhones"<br>• "Remove 5 MacBooks"</div>
+  <!-- Input -->
+  <div class="p-4 border-t border-gray-200">
+    <div class="max-w-3xl mx-auto flex">
+      <input type="text" id="userInput" class="flex-1 px-4 py-3 border border-gray-200 rounded-l-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Type inventory command..." />
+      <button id="sendBtn" class="bg-blue-500 text-white px-6 rounded-r-lg hover:bg-blue-600">
+        <i class="fas fa-paper-plane"></i>
+      </button>
     </div>
   </div>
 
   <script>
-    const sendBtn = document.getElementById('sendBtn');
-    const userInput = document.getElementById('userInput');
-    const chatOutput = document.getElementById('chatOutput');
+    const chatContainer = document.getElementById("chatContainer");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    const webhookURL = "https://script.google.com/macros/s/AKfycbwulNPeT8TDWo6v6LbLdhudb0Fb3p979ZYNIBEJpG-BL-adwgq7TMyHg0YUfS7tLh8s/exec";
+
+    function addMessage(text, isUser = false) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "flex justify-" + (isUser ? "end" : "start");
+
+      const bubble = document.createElement("div");
+      bubble.className = `chat-bubble ${isUser ? "user-bubble" : "bot-bubble"}`;
+      bubble.innerText = text;
+
+      msgDiv.appendChild(bubble);
+      chatContainer.appendChild(msgDiv);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
 
     async function processCommand(cmd) {
       addMessage(cmd, true);
@@ -42,12 +74,12 @@
         [, quantity, item] = cmd.match(remMatch);
         command = "remove";
       } else {
-        addMessage("❌ Invalid command format. Use 'Add 5 iPhones' or 'Remove 3 Pens'", false);
+        addMessage("❌ Invalid command. Try: Add 5 Chips", false);
         return;
       }
 
       try {
-        const res = await fetch("YOUR_WEBAPP_URL_HERE", {
+        const res = await fetch(webhookURL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ command, item, quantity: parseInt(quantity) })
@@ -61,30 +93,20 @@
         }
       } catch (err) {
         console.error(err);
-        addMessage("❌ Error calling backend: " + err.message, false);
+        addMessage("❌ Error: " + err.message, false);
       }
     }
 
-    function addMessage(msg, isUser) {
-      const div = document.createElement('div');
-      div.className = isUser ? 'bg-blue-100 p-4 rounded text-right' : 'bg-gray-200 p-4 rounded';
-      div.textContent = msg;
-      chatOutput.appendChild(div);
-      chatOutput.scrollTop = chatOutput.scrollHeight;
-    }
-
-    sendBtn.addEventListener('click', () => {
-      const message = userInput.value.trim();
-      if (message) {
-        processCommand(message);
-        userInput.value = '';
+    sendBtn.addEventListener("click", () => {
+      const msg = userInput.value.trim();
+      if (msg) {
+        processCommand(msg);
+        userInput.value = "";
       }
     });
 
-    userInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') {
-        sendBtn.click();
-      }
+    userInput.addEventListener("keypress", e => {
+      if (e.key === "Enter") sendBtn.click();
     });
   </script>
 </body>
