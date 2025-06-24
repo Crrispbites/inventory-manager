@@ -2,94 +2,153 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Inventory Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background-color: #f5f5f7; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f5f5f7;
+    }
+    .sidebar {
+      width: 240px;
+      transition: all 0.3s ease;
+      background: #ffffff;
+      border-right: 1px solid #e5e5ea;
+      position: relative;
+    }
+    .sidebar.collapsed { width: 48px; }
+    .sidebar-item { padding: 12px 16px; cursor: pointer; white-space: nowrap; }
+    .sidebar-item.active { background-color: #007aff; color: white; }
+    .sidebar-item:hover { background-color: #f1f1f3; }
     .chat-bubble { max-width: 80%; border-radius: 12px; padding: 12px 16px; }
     .user-bubble { background-color: #007aff; color: white; margin-left: auto; border-bottom-right-radius: 4px; }
     .bot-bubble { background-color: #e5e5ea; color: #1c1c1e; border-bottom-left-radius: 4px; }
+    .toggle-sidebar { position: absolute; right: -12px; top: 20px; background: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #e5e5ea; }
   </style>
 </head>
-<body class="flex flex-col h-screen">
-  <!-- Chat Area -->
-  <div class="flex-1 p-6 overflow-y-auto">
-    <div class="max-w-3xl mx-auto space-y-4" id="chatContainer">
-      <div class="flex justify-start">
-        <div class="chat-bubble bot-bubble">
-          <p>Hello! I'm your Inventory Assistant.</p>
-          <p class="mt-2">Try commands like:</p>
-          <ul class="list-disc pl-5 mt-1">
-            <li>Add 10 iPhones</li>
-            <li>Remove 5 MacBooks</li>
-          </ul>
-        </div>
+<body class="flex h-screen">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="toggle-sidebar" id="toggleSidebar">
+      <i class="fas fa-angle-left text-xs text-gray-500"></i>
+    </div>
+    <div class="p-4">
+      <div class="text-xl font-bold mb-8">Inventory</div>
+      <div class="sidebar-item active" id="chatToggle">
+        <i class="fas fa-comment-dots mr-2"></i><span class="label">Chat</span>
+      </div>
+      <div class="sidebar-item" id="settingsToggle">
+        <i class="fas fa-gear mr-2"></i><span class="label">Settings</span>
+      </div>
+      <div class="sidebar-item" id="inventoryToggle">
+        <i class="fas fa-boxes mr-2"></i><span class="label">Inventory</span>
       </div>
     </div>
   </div>
 
-  <!-- Input -->
-  <div class="p-4 border-t border-gray-200">
-    <div class="max-w-3xl mx-auto flex">
-      <input type="text" id="userInput" class="flex-1 px-4 py-3 border border-gray-200 rounded-l-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Type inventory command..." />
-      <button id="sendBtn" class="bg-blue-500 text-white px-6 rounded-r-lg hover:bg-blue-600">
-        <i class="fas fa-paper-plane"></i>
-      </button>
+  <!-- Main -->
+  <div class="flex-1 flex flex-col">
+    <!-- Chat View -->
+    <div id="chatView" class="flex-1 p-6 overflow-y-auto">
+      <div class="max-w-3xl mx-auto space-y-4" id="chatContainer">
+        <div class="flex justify-start">
+          <div class="chat-bubble bot-bubble">
+            <p>Hello! I'm your Inventory Assistant.</p>
+            <p class="mt-2">You can say:</p>
+            <ul class="list-disc pl-5">
+              <li>Add 10 iPhones</li>
+              <li>Remove 5 MacBooks</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings View -->
+    <div id="settingsView" class="hidden flex-1 p-6">
+      <div class="max-w-3xl mx-auto space-y-4">
+        <div class="text-xl font-semibold">Settings</div>
+        <div class="bg-white p-4 rounded shadow">
+          <label class="block mb-2 font-medium">Web App URL</label>
+          <input type="text" id="webhookURL" class="w-full border px-3 py-2 rounded" value="https://script.google.com/macros/s/AKfycbwulNPeT8TDWo6v6LbLdhudb0Fb3p979ZYNIBEJpG-BL-adwgq7TMyHg0YUfS7tLh8s/exec" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory View -->
+    <div id="inventoryView" class="hidden flex-1 p-6">
+      <div class="max-w-3xl mx-auto">
+        <h2 class="text-xl font-semibold mb-4">Current Inventory (Only editable via Sheet for now)</h2>
+        <p class="text-gray-600">Inventory data will be shown here if needed in future updates.</p>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="p-4 border-t">
+      <div class="max-w-3xl mx-auto flex">
+        <input type="text" id="userInput" class="flex-1 px-4 py-2 border rounded-l" placeholder="Type a command...">
+        <button id="sendBtn" class="bg-blue-500 text-white px-6 rounded-r hover:bg-blue-600">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
     </div>
   </div>
 
   <script>
+    const chatToggle = document.getElementById("chatToggle");
+    const settingsToggle = document.getElementById("settingsToggle");
+    const inventoryToggle = document.getElementById("inventoryToggle");
+    const chatView = document.getElementById("chatView");
+    const settingsView = document.getElementById("settingsView");
+    const inventoryView = document.getElementById("inventoryView");
     const chatContainer = document.getElementById("chatContainer");
-    const userInput = document.getElementById("userInput");
+
+    const webhookInput = document.getElementById("webhookURL");
     const sendBtn = document.getElementById("sendBtn");
+    const userInput = document.getElementById("userInput");
 
-    const webhookURL = "https://script.google.com/macros/s/AKfycbwulNPeT8TDWo6v6LbLdhudb0Fb3p979ZYNIBEJpG-BL-adwgq7TMyHg0YUfS7tLh8s/exec";
-
-    function addMessage(text, isUser = false) {
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "flex justify-" + (isUser ? "end" : "start");
-
+    function addMessage(msg, isUser = false) {
       const bubble = document.createElement("div");
       bubble.className = `chat-bubble ${isUser ? "user-bubble" : "bot-bubble"}`;
-      bubble.innerText = text;
-
-      msgDiv.appendChild(bubble);
-      chatContainer.appendChild(msgDiv);
+      bubble.innerText = msg;
+      const wrapper = document.createElement("div");
+      wrapper.className = `flex justify-${isUser ? "end" : "start"}`;
+      wrapper.appendChild(bubble);
+      chatContainer.appendChild(wrapper);
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    async function processCommand(cmd) {
-      addMessage(cmd, true);
+    async function processCommand(command) {
+      addMessage(command, true);
       const addMatch = /add (\d+)\s+(.+)/i;
       const remMatch = /remove (\d+)\s+(.+)/i;
 
-      let command = "", item = "", quantity = 0;
+      let cmd = "", item = "", qty = 0;
 
-      if (addMatch.test(cmd)) {
-        [, quantity, item] = cmd.match(addMatch);
-        command = "add";
-      } else if (remMatch.test(cmd)) {
-        [, quantity, item] = cmd.match(remMatch);
-        command = "remove";
+      if (addMatch.test(command)) {
+        [, qty, item] = command.match(addMatch);
+        cmd = "add";
+      } else if (remMatch.test(command)) {
+        [, qty, item] = command.match(remMatch);
+        cmd = "remove";
       } else {
-        addMessage("❌ Invalid command. Try: Add 5 Chips", false);
+        addMessage("❌ Invalid command format. Use 'Add 5 Apples'", false);
         return;
       }
 
       try {
-        const res = await fetch(webhookURL, {
+        const res = await fetch(webhookInput.value.trim(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ command, item, quantity: parseInt(quantity) })
+          body: JSON.stringify({ command: cmd, item, quantity: parseInt(qty) })
         });
-
         const text = await res.text();
         if (res.ok) {
           addMessage(`✅ ${text}`, false);
         } else {
-          addMessage("❌ Failed: " + text, false);
+          addMessage(`❌ Failed: ${text}`, false);
         }
       } catch (err) {
         console.error(err);
@@ -98,15 +157,42 @@
     }
 
     sendBtn.addEventListener("click", () => {
-      const msg = userInput.value.trim();
-      if (msg) {
-        processCommand(msg);
+      const message = userInput.value.trim();
+      if (message) {
+        processCommand(message);
         userInput.value = "";
       }
     });
 
-    userInput.addEventListener("keypress", e => {
+    userInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter") sendBtn.click();
+    });
+
+    chatToggle.addEventListener("click", () => {
+      chatView.classList.remove("hidden");
+      settingsView.classList.add("hidden");
+      inventoryView.classList.add("hidden");
+      chatToggle.classList.add("active");
+      settingsToggle.classList.remove("active");
+      inventoryToggle.classList.remove("active");
+    });
+
+    settingsToggle.addEventListener("click", () => {
+      chatView.classList.add("hidden");
+      settingsView.classList.remove("hidden");
+      inventoryView.classList.add("hidden");
+      chatToggle.classList.remove("active");
+      settingsToggle.classList.add("active");
+      inventoryToggle.classList.remove("active");
+    });
+
+    inventoryToggle.addEventListener("click", () => {
+      chatView.classList.add("hidden");
+      settingsView.classList.add("hidden");
+      inventoryView.classList.remove("hidden");
+      chatToggle.classList.remove("active");
+      settingsToggle.classList.remove("active");
+      inventoryToggle.classList.add("active");
     });
   </script>
 </body>
