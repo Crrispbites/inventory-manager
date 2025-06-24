@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f5f7;
+        }
+        .sidebar {
+            width: 240px;
+            transition: all 0.3s ease;
+            background: #ffffff;
+            border-right: 1px solid #e5e5ea;
+            position: relative;
+            min-width: 48px;
+            overflow: hidden;
+        }
+        .sidebar.collapsed {
+            width: 48px;
+        }
+        .sidebar-content {
+            min-width: 240px;
+        }
+        .sidebar-item {
+            padding: 12px 16px;
+            color: #1c1c1e;
+            border-radius: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .sidebar-item:hover {
+            background-color: #f1f1f3;
+        }
+        .sidebar-item.active {
+            background-color: #007aff;
+            color: white;
+        }
+        .sidebar-item .icon {
+            margin-right: 12px;
+            width: 24px;
+            display: inline-block;
+            text-align: center;
+        }
+        .collapsed .sidebar-item .label {
+            display: none;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+        .user-bubble {
+            background-color: #007aff;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-bubble {
+            background-color: #e5e5ea;
+            color: #1c1c1e;
+            border-bottom-left-radius: 4px;
+        }
+        .frosted-bg {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .toggle-sidebar {
+            position: absolute;
+            right: -12px;
+            top: 20px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #e5e5ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .toggle-sidebar:hover {
+            background: #f5f5f7;
+        }
+    </style>
+</head>
+<body class="flex h-screen">
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="toggle-sidebar" id="toggleSidebar">
+            <i class="fas fa-angle-left text-gray-500 text-xs"></i>
+        </div>
+        
+        <div class="sidebar-content p-4 h-full flex flex-col">
+            <div class="text-xl font-semibold mb-8 px-2 truncate">Inventory Manager</div>
+            
+            <div id="chatToggle" class="sidebar-item active">
+                <span class="icon"><i class="fas fa-comment-dots"></i></span>
+                <span class="label">Chat</span>
+            </div>
+            
+            <div id="settingsToggle" class="sidebar-item">
+                <span class="icon"><i class="fas fa-gear"></i></span>
+                <span class="label">Settings</span>
+            </div>
+            
+            <div id="inventoryToggle" class="sidebar-item">
+                <span class="icon"><i class="fas fa-boxes"></i></span>
+                <span class="label">Inventory</span>
+            </div>
+            
+            <div class="flex-grow"></div>
+            
+            <div class="text-xs text-gray-500 px-2">
+                <span id="connectionStatus" class="hidden">
+                    <i class="fas fa-circle text-green-500 mr-1"></i>
+                    <span class="label">Connected</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col">
+        <!-- Chat View -->
+        <div id="chatView" class="flex-1 p-6 overflow-y-auto">
+            <div class="max-w-3xl mx-auto space-y-4">
+                <div class="flex justify-start">
+                    <div class="chat-bubble bot-bubble">
+                        <p>Hello! I'm your Inventory Assistant.</p>
+                        <p class="mt-2">You can say things like:</p>
+                        <ul class="list-disc pl-5 mt-1">
+                            <li>"Add 10 iPhones"</li>
+                            <li>"Remove 5 MacBooks"</li>
+                            <li>"Show inventory"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="settingsView" class="hidden flex-1 p-6 overflow-y-auto">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <h2 class="text-xl font-semibold">Settings</h2>
+                
+                <div class="frosted-bg p-6 rounded-xl shadow-sm">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Google Sheet ID</label>
+                        <input type="text" id="spreadsheetId" 
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg" 
+                            placeholder="1QPgt7PbbLYSMRffSXmWLf4A_QgBXsL55fPObCShuG3w">
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Google API Key</label>
+                        <input type="text" id="apiKey" 
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg" 
+                            placeholder="AIzaSy...">
+                    </div>
+                    
+                    <button id="saveSettings" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                        Save Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory View -->
+        <div id="inventoryView" class="hidden flex-1 p-6 overflow-y-auto">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <h2 class="text-xl font-semibold">Current Inventory</h2>
+                
+                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                    <table class="inventory-table w-full">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left">Item</th>
+                                <th class="px-4 py-2 text-left">Quantity</th>
+                                <th class="px-4 py-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryItems">
+                            <!-- Inventory items will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="inventoryEmptyMessage" class="hidden bg-orange-50 border-l-4 border-orange-400 p-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-exclamation-circle text-orange-400 mr-2"></i>
+                        <span>Your inventory is currently empty. Add items using the chat.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t border-gray-200">
+            <div class="max-w-3xl mx-auto flex">
+                <input type="text" id="userInput" 
+                    class="flex-1 px-4 py-3 border border-gray-200 rounded-l-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
+                    placeholder="Type inventory command...">
+                <button id="sendBtn" 
+                    class="bg-blue-500 text-white px-6 rounded-r-lg hover:bg-blue-600">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sidebar toggle functionality
+            const sidebar = document.getElementById('sidebar');
+            const toggleSidebar = document.getElementById('toggleSidebar');
+            
+            toggleSidebar.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                const icon = toggleSidebar.querySelector('i');
+                if (sidebar.classList.contains('collapsed')) {
+                    icon.classList.remove('fa-angle-left');
+                    icon.classList.add('fa-angle-right');
+                } else {
+                    icon.classList.remove('fa-angle-right');
+                    icon.classList.add('fa-angle-left');
+                }
+            });
+
+            // View toggling
+            const chatView = document.getElementById('chatView');
+            const settingsView = document.getElementById('settingsView');
+            const inventoryView = document.getElementById('inventoryView');
+            const chatToggle = document.getElementById('chatToggle');
+            const settingsToggle = document.getElementById('settingsToggle');
+            const inventoryToggle = document.getElementById('inventoryToggle');
+            
+            chatToggle.addEventListener('click', function() {
+                chatView.classList.remove('hidden');
+                settingsView.classList.add('hidden');
+                inventoryView.classList.add('hidden');
+                chatToggle.classList.add('active');
+                settingsToggle.classList.remove('active');
+                inventoryToggle.classList.remove('active');
+            });
+            
+            settingsToggle.addEventListener('click', function() {
+                chatView.classList.add('hidden');
+                settingsView.classList.remove('hidden');
+                inventoryView.classList.add('hidden');
+                chatToggle.classList.remove('active');
+                settingsToggle.classList.add('active');
+                inventoryToggle.classList.remove('active');
+            });
+
+            inventoryToggle.addEventListener('click', function() {
+                chatView.classList.add('hidden');
+                settingsView.classList.add('hidden');
+                inventoryView.classList.remove('hidden');
+                chatToggle.classList.remove('active');
+                settingsToggle.classList.remove('active');
+                inventoryToggle.classList.add('active');
+                loadInventory();
+            });
+
+            // DOM elements for chat functionality
+            const userInput = document.getElementById('userInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const saveSettings = document.getElementById('saveSettings');
+            const spreadsheetIdInput = document.getElementById('spreadsheetId');
+            const apiKeyInput = document.getElementById('apiKey');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const chatContainer = chatView.querySelector('.space-y-4');
+            const inventoryItems = document.getElementById('inventoryItems');
+            const inventoryEmptyMessage = document.getElementById('inventoryEmptyMessage');
+
+            // Configuration
+            let config = {
+                spreadsheetId: '',
+                apiKey: '',
+                sheetName: 'Inventory',
+                transactionSheetName: 'TransactionHistory',
+                connected: false,
+                inventory: {}
+            };
+
+            // Load saved settings
+            function loadSettings() {
+                const savedSettings = localStorage.getItem('inventorySettings');
+                if (savedSettings) {
+                    config = JSON.parse(savedSettings);
+                    spreadsheetIdInput.value = config.spreadsheetId;
+                    apiKeyInput.value = config.apiKey;
+
+                    if (config.apiKey) {
+                        testConnection();
+                    }
+                }
+            }
+
+            // Save settings
+            saveSettings.addEventListener('click', async function() {
+                config.spreadsheetId = spreadsheetIdInput.value.trim();
+                config.apiKey = apiKeyInput.value.trim();
+
+                localStorage.setItem('inventorySettings', JSON.stringify(config));
+
+                // Visual feedback
+                const originalText = saveSettings.innerHTML;
+                saveSettings.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Connecting...';
+                saveSettings.disabled = true;
+
+                try {
+                    const success = await testConnection();
+                    saveSettings.innerHTML = originalText;
+                    saveSettings.disabled = false;
+                    if (success) {
+                        addMessage("✅ Successfully connected to Google Sheets!", false);
+                    }
+                } catch (error) {
+                    saveSettings.innerHTML = originalText;
+                    saveSettings.disabled = false;
+                    addMessage("❌ Failed to connect to Google Sheets", false);
+                }
+            });
+
+            // Test connection to Google Sheets
+            async function testConnection() {
+                if (!config.apiKey) return false;
+
+                try {
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}?key=${config.apiKey}`;
+                    const response = await fetch(url);
+
+                    if (response.ok) {
+                        config.connected = true;
+                        connectionStatus.classList.remove('hidden');
+                        return true;
+                    } else {
+                        const error = await response.json();
+                        throw error;
+                    }
+                } catch (error) {
+                    config.connected = false;
+                    connectionStatus.classList.add('hidden');
+                    return false;
+                }
+            }
+
+            // Add message to chat
+            function addMessage(text, isUser  = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `flex justify-${isUser  ? 'end' : 'start'}`;
+
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = `chat-bubble ${isUser  ? 'user-bubble' : 'bot-bubble'}`;
+                bubbleDiv.innerHTML = text;
+
+                messageDiv.appendChild(bubbleDiv);
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            // Process command
+            function processCommand(command) {
+                if (!config.connected) {
+                    addMessage(⚠️ Please connect to Google Sheets first in Settings", false);
+                    settingsToggle.click();
+                    return;
+                }
+
+                addMessage(`Processing: ${command}`, true);
+                setTimeout(() => {
+                    addMessage("This would interact with Google Sheets API in a full implementation", false);
+                }, 800);
+            }
+
+            // Load inventory from Google Sheets
+            async function loadInventory() {
+                if (!config.connected) {
+                    addMessage("⚠️ Please connect to Google Sheets first in Settings", false);
+                    settingsToggle.click();
+                    return;
+                }
+
+                try {
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}?key=${config.apiKey}`;
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    inventoryItems.innerHTML = ''; // Clear previous items
+                    if (data.values && data.values.length > 1) {
+                        data.values.slice(1).forEach(row => {
+                            const item = row[0];
+                            const quantity = row[1];
+                            const rowElement = document.createElement('tr');
+                            rowElement.innerHTML = `
+                                <td class="px-4 py-2">${item}</td>
+                                <td class="px-4 py-2">${quantity}</td>
+                                <td class="px-4 py-2 text-right">
+                                    <button class="text-red-500" onclick="removeItem('${item}')">Remove</button>
+                                </td>
+                            `;
+                            inventoryItems.appendChild(rowElement);
+                        });
+                    } else {
+                        inventoryEmptyMessage.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error loading inventory:", error);
+                    addMessage("❌ Failed to load inventory from Google Sheets", false);
+                }
+            }
+
+            // Remove item from inventory
+            async function removeItem(item) {
+                try {
+                    const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}:batchUpdate?key=${config.apiKey}`;
+                    const body = {
+                        "data": [
+                            {
+                                "range": `${config.sheetName}!A1:A`,
+                                "values": [[item]]
+                            }
+                        ],
+                        "valueInputOption": "USER_ENTERED"
+                    };
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (response.ok) {
+                        addMessage(`✅ Removed ${item} from inventory`, false);
+                        loadInventory();
+                    } else {
+                        throw new Error("Failed to remove item");
+                    }
+                } catch (error) {
+                    console.error("Error removing item:", error);
+                    addMessage("❌ Failed to remove item from inventory", false);
+                }
+            }
+
+            // Event listeners
+            sendBtn.addEventListener('click', function() {
+                const message = userInput.value.trim();
+                if (message) {
+                    processCommand(message);
+                    userInput.value = '';
+                }
+            });
+
+            userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendBtn.click();
+                }
+            });
+
+            // Initialize
+            loadSettings();
+            userInput.focus();
+        });
+    </script>
+</body>
+</html>
