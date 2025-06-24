@@ -1,311 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inventory Manager</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background-color: #f5f5f7;
-    }
-    .sidebar {
-      width: 240px;
-      transition: all 0.3s ease;
-      background: #fff;
-      border-right: 1px solid #e5e5ea;
-      position: relative;
-      min-width: 48px;
-      overflow: hidden;
-    }
-    .sidebar.collapsed {
-      width: 48px;
-    }
-    .sidebar-item {
-      padding: 12px 16px;
-      color: #1c1c1e;
-      border-radius: 8px;
-      white-space: nowrap;
-      transition: all 0.2s;
-    }
-    .sidebar-item:hover {
-      background-color: #f1f1f3;
-    }
-    .sidebar-item.active {
-      background-color: #007aff;
-      color: white;
-    }
-    .sidebar-item .icon {
-      margin-right: 12px;
-      width: 24px;
-      display: inline-block;
-      text-align: center;
-    }
-    .collapsed .sidebar-item .label {
-      display: none;
-    }
-    .chat-bubble {
-      max-width: 80%;
-      border-radius: 12px;
-      padding: 12px 16px;
-    }
-    .user-bubble {
-      background-color: #007aff;
-      color: white;
-      margin-left: auto;
-      border-bottom-right-radius: 4px;
-    }
-    .bot-bubble {
-      background-color: #e5e5ea;
-      color: #1c1c1e;
-      border-bottom-left-radius: 4px;
-    }
-    .frosted-bg {
-      background: rgba(255,255,255,0.8);
-      backdrop-filter: blur(20px);
-    }
-  </style>
 </head>
-<body class="flex h-screen">
-  <!-- Sidebar -->
-  <div class="sidebar" id="sidebar">
-    <div class="p-4">
-      <div class="text-xl font-semibold mb-6 truncate">Inventory</div>
-      <div id="chatToggle" class="sidebar-item active"><span class="icon"><i class="fas fa-comments"></i></span><span class="label">Chat</span></div>
-      <div id="settingsToggle" class="sidebar-item"><span class="icon"><i class="fas fa-gear"></i></span><span class="label">Settings</span></div>
-      <div id="inventoryToggle" class="sidebar-item"><span class="icon"><i class="fas fa-boxes"></i></span><span class="label">Inventory</span></div>
-      <div class="text-xs text-gray-500 mt-10 px-2">
-        <span id="connectionStatus" class="hidden">
-          <i class="fas fa-circle text-green-500 mr-1"></i>Connected
-        </span>
-      </div>
+<body class="bg-gray-100 min-h-screen">
+  <div class="max-w-3xl mx-auto py-8 px-4">
+    <h1 class="text-2xl font-bold mb-6">Inventory Manager</h1>
+
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+      <input id="userInput" type="text" placeholder="Type a command like 'Add 5 iPhones'" class="w-full border p-2 rounded" />
+      <button id="sendBtn" class="mt-2 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+        Send Command
+      </button>
+    </div>
+
+    <div class="space-y-4" id="chatOutput">
+      <div class="bg-gray-200 p-4 rounded">🤖 Hello! I'm your Inventory Assistant.<br>You can say things like:<br>• "Add 10 iPhones"<br>• "Remove 5 MacBooks"</div>
     </div>
   </div>
 
-  <!-- Main -->
-  <div class="flex-1 flex flex-col">
-    <!-- Chat View -->
-    <div id="chatView" class="flex-1 p-6 overflow-y-auto">
-      <div class="max-w-3xl mx-auto space-y-4">
-        <div class="flex justify-start">
-          <div class="chat-bubble bot-bubble">
-            <p>Hey! I'm your Inventory Assistant.</p>
-            <ul class="list-disc pl-5 mt-2">
-              <li>Add 5 iPhones</li>
-              <li>Remove 2 Pens</li>
-              <li>Show inventory</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Settings View -->
-    <div id="settingsView" class="hidden flex-1 p-6 overflow-y-auto">
-      <div class="max-w-3xl mx-auto space-y-6">
-        <h2 class="text-xl font-semibold">Settings</h2>
-        <div class="frosted-bg p-6 rounded-xl shadow-sm">
-          <div class="mb-4">
-            <label class="block text-sm font-medium mb-2">Google Sheet ID</label>
-            <input type="text" id="spreadsheetId" class="w-full px-3 py-2 border border-gray-200 rounded-lg" placeholder="Paste your Sheet ID here">
-          </div>
-          <div class="mb-6">
-            <label class="block text-sm font-medium mb-2">Google API Key</label>
-            <input type="text" id="apiKey" class="w-full px-3 py-2 border border-gray-200 rounded-lg" placeholder="Paste your API Key here">
-          </div>
-          <button id="saveSettings" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Save Settings</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Inventory View -->
-    <div id="inventoryView" class="hidden flex-1 p-6 overflow-y-auto">
-      <div class="max-w-3xl mx-auto space-y-6">
-        <h2 class="text-xl font-semibold">Inventory</h2>
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table class="w-full">
-            <thead>
-              <tr>
-                <th class="px-4 py-2 text-left">Item</th>
-                <th class="px-4 py-2 text-left">Quantity</th>
-              </tr>
-            </thead>
-            <tbody id="inventoryItems"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Input -->
-    <div class="p-4 border-t border-gray-200">
-      <div class="max-w-3xl mx-auto flex">
-        <input type="text" id="userInput" class="flex-1 px-4 py-3 border border-gray-200 rounded-l-lg" placeholder="Type command here...">
-        <button id="sendBtn" class="bg-blue-500 text-white px-6 rounded-r-lg hover:bg-blue-600"><i class="fas fa-paper-plane"></i></button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Script -->
   <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const chatView = document.getElementById('chatView');
-      const settingsView = document.getElementById('settingsView');
-      const inventoryView = document.getElementById('inventoryView');
-      const chatToggle = document.getElementById('chatToggle');
-      const settingsToggle = document.getElementById('settingsToggle');
-      const inventoryToggle = document.getElementById('inventoryToggle');
-      const userInput = document.getElementById('userInput');
-      const sendBtn = document.getElementById('sendBtn');
-      const saveSettings = document.getElementById('saveSettings');
-      const spreadsheetIdInput = document.getElementById('spreadsheetId');
-      const apiKeyInput = document.getElementById('apiKey');
-      const connectionStatus = document.getElementById('connectionStatus');
-      const chatContainer = chatView.querySelector('.space-y-4');
-      const inventoryItems = document.getElementById('inventoryItems');
+    const sendBtn = document.getElementById('sendBtn');
+    const userInput = document.getElementById('userInput');
+    const chatOutput = document.getElementById('chatOutput');
 
-      let config = {
-        spreadsheetId: '',
-        apiKey: '',
-        sheetName: 'Inventory',
-        connected: false
-      };
+    async function processCommand(cmd) {
+      addMessage(cmd, true);
+      const addMatch = /add (\d+)\s+(.+)/i;
+      const remMatch = /remove (\d+)\s+(.+)/i;
 
-      function switchView(view) {
-        chatView.classList.add('hidden');
-        settingsView.classList.add('hidden');
-        inventoryView.classList.add('hidden');
-        chatToggle.classList.remove('active');
-        settingsToggle.classList.remove('active');
-        inventoryToggle.classList.remove('active');
+      let command = "", item = "", quantity = 0;
 
-        if (view === 'chat') {
-          chatView.classList.remove('hidden');
-          chatToggle.classList.add('active');
-        } else if (view === 'settings') {
-          settingsView.classList.remove('hidden');
-          settingsToggle.classList.add('active');
-        } else {
-          inventoryView.classList.remove('hidden');
-          inventoryToggle.classList.add('active');
-          loadInventory();
-        }
+      if (addMatch.test(cmd)) {
+        [, quantity, item] = cmd.match(addMatch);
+        command = "add";
+      } else if (remMatch.test(cmd)) {
+        [, quantity, item] = cmd.match(remMatch);
+        command = "remove";
+      } else {
+        addMessage("❌ Invalid command format. Use 'Add 5 iPhones' or 'Remove 3 Pens'", false);
+        return;
       }
 
-      chatToggle.onclick = () => switchView('chat');
-      settingsToggle.onclick = () => switchView('settings');
-      inventoryToggle.onclick = () => switchView('inventory');
-
-      function addMessage(text, isUser = false) {
-        const msg = document.createElement('div');
-        msg.className = `flex justify-${isUser ? 'end' : 'start'}`;
-        msg.innerHTML = `<div class="chat-bubble ${isUser ? 'user-bubble' : 'bot-bubble'}">${text}</div>`;
-        chatContainer.appendChild(msg);
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-      }
-
-      async function loadInventory() {
-        try {
-          const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}?key=${config.apiKey}`);
-          const data = await res.json();
-          inventoryItems.innerHTML = '';
-          (data.values || []).slice(1).forEach(row => {
-            const [item, qty] = row;
-            inventoryItems.innerHTML += `<tr><td class="px-4 py-2">${item}</td><td class="px-4 py-2">${qty}</td></tr>`;
-          });
-        } catch (e) {
-          console.error(e);
-          addMessage("❌ Could not load inventory", false);
-        }
-      }
-
-      async function updateInventory(itemName, deltaQty) {
-        const sheetUrl = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}?key=${config.apiKey}`;
-        const res = await fetch(sheetUrl);
-        const data = await res.json();
-        let values = data.values || [["Item", "Quantity"]];
-        const headers = values[0];
-        const rows = values.slice(1);
-        let found = false;
-
-        for (let i = 0; i < rows.length; i++) {
-          if (rows[i][0].toLowerCase() === itemName.toLowerCase()) {
-            rows[i][1] = (Math.max(0, parseInt(rows[i][1] || 0) + deltaQty)).toString();
-            found = true;
-            break;
-          }
-        }
-
-        if (!found && deltaQty > 0) rows.push([itemName, deltaQty.toString()]);
-
-        const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}/values/${config.sheetName}?valueInputOption=USER_ENTERED&key=${config.apiKey}`;
-        await fetch(updateUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values: [headers, ...rows] })
+      try {
+        const res = await fetch("YOUR_WEBAPP_URL_HERE", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ command, item, quantity: parseInt(quantity) })
         });
 
-        addMessage(`✅ Updated ${itemName}`, false);
-        loadInventory();
-      }
-
-      async function processCommand(cmd) {
-        if (!config.connected) return addMessage("⚠️ Connect to Google Sheets in Settings", false);
-        addMessage(cmd, true);
-        const add = /add (\d+)\s+(.+)/i;
-        const rem = /remove (\d+)\s+(.+)/i;
-        if (add.test(cmd)) {
-          const [, q, item] = cmd.match(add);
-          await updateInventory(item.trim(), parseInt(q));
-        } else if (rem.test(cmd)) {
-          const [, q, item] = cmd.match(rem);
-          await updateInventory(item.trim(), -parseInt(q));
-        } else if (/show inventory/i.test(cmd)) {
-          await loadInventory();
+        const text = await res.text();
+        if (res.ok) {
+          addMessage(`✅ ${text}`, false);
         } else {
-          addMessage("❌ Invalid command format", false);
+          addMessage("❌ Failed: " + text, false);
         }
+      } catch (err) {
+        console.error(err);
+        addMessage("❌ Error calling backend: " + err.message, false);
       }
+    }
 
-      sendBtn.onclick = () => {
-        const msg = userInput.value.trim();
-        if (msg) processCommand(msg);
+    function addMessage(msg, isUser) {
+      const div = document.createElement('div');
+      div.className = isUser ? 'bg-blue-100 p-4 rounded text-right' : 'bg-gray-200 p-4 rounded';
+      div.textContent = msg;
+      chatOutput.appendChild(div);
+      chatOutput.scrollTop = chatOutput.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', () => {
+      const message = userInput.value.trim();
+      if (message) {
+        processCommand(message);
         userInput.value = '';
-      };
-
-      userInput.addEventListener('keypress', e => {
-        if (e.key === 'Enter') sendBtn.click();
-      });
-
-      saveSettings.onclick = async () => {
-        config.spreadsheetId = spreadsheetIdInput.value.trim();
-        config.apiKey = apiKeyInput.value.trim();
-        localStorage.setItem('inventorySettings', JSON.stringify(config));
-        try {
-          const test = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.spreadsheetId}?key=${config.apiKey}`);
-          if (test.ok) {
-            config.connected = true;
-            connectionStatus.classList.remove('hidden');
-            addMessage("✅ Connected!", false);
-          } else throw new Error();
-        } catch {
-          config.connected = false;
-          connectionStatus.classList.add('hidden');
-          addMessage("❌ Connection failed", false);
-        }
-      };
-
-      // Load saved settings
-      const saved = localStorage.getItem('inventorySettings');
-      if (saved) {
-        config = JSON.parse(saved);
-        spreadsheetIdInput.value = config.spreadsheetId;
-        apiKeyInput.value = config.apiKey;
-        if (config.apiKey && config.spreadsheetId) saveSettings.click();
       }
+    });
 
-      userInput.focus();
+    userInput.addEventListener('keypress', e => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
+      }
     });
   </script>
 </body>
